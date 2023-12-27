@@ -196,7 +196,7 @@ describe('Test HTS service', () => {
     );
   });
 
-  test('sendNFT', async () => {
+  test('transfer', async () => {
     const updateTx = HTS.transfer('0.0.987654', '0.0.654321');
 
     expect(updateTx).toEqual(

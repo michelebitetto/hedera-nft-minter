@@ -23,6 +23,7 @@ import {
   Homepage,
   MyWallet,
   TermsOfService,
+  SellNFT,
 } from '@pages/index';
 
 export type CommonRoute = {
@@ -43,10 +44,14 @@ const routes: Array<CommonRoute> = [
     component: MyWallet,
   },
   {
+    path: '/sell-nft',
+    component: SellNFT,
+  },
+  {
     path: '/terms-of-service',
     component: TermsOfService,
   },
-{
+  {
     path: '/404',
     component: NotFound,
   },

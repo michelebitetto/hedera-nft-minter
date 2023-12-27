@@ -29,7 +29,7 @@ import useHederaWallets from '@utils/hooks/useHederaWallets';
 import { HomepageContext } from '@utils/context/HomepageContext';
 import filterFormValuesToNFTMetadata from '@utils/helpers/filterFormValuesToNFTMetadata';
 import { initialValues } from '@utils/const/minter-wizard';
-import { MintTypes } from '@utils/entity/MinterWizard'
+import { MintTypes } from '@utils/entity/MinterWizard';
 import { NFTMetadata } from '@utils/entity/NFT-Metadata';
 
 import { ValidationSchema } from '@components/views/minter-wizard/validation-schema';
@@ -52,7 +52,8 @@ const META_KEYS = [
 
 export default function MinterWizard() {
   const { userWalletId, sendTransaction } = useHederaWallets();
-  const { mintedNFTData, setNewNFTdata, tokenCreated, resetHomepageData } = useContext(HomepageContext);
+  const { mintedNFTData, setNewNFTdata, tokenCreated, resetHomepageData } =
+    useContext(HomepageContext);
 
   const uploadNFTFile = useCallback(async (file) => {
     const { data } = await IPFS.uploadFile(file);
@@ -61,7 +62,7 @@ export default function MinterWizard() {
   }, []);
 
   const uploadMetadata = useCallback(async (metadata) => {
-    const orderedMetadata: {[key: string]: any} = {};
+    const orderedMetadata: { [key: string]: any } = {};
 
     for (const key of META_KEYS) {
       if (metadata[key]) {
@@ -69,160 +70,173 @@ export default function MinterWizard() {
       }
     }
 
-    const { data } = await IPFS.createMetadataFile(orderedMetadata as NFTMetadata);
+    const { data } = await IPFS.createMetadataFile(
+      orderedMetadata as NFTMetadata
+    );
 
     return data;
   }, []);
 
-  const createToken = useCallback(async (values: NewTokenType): Promise<TokenId | null> => {
-    const createTokenTx = await HTS.createToken(values);
-    const createTokenResponse = await sendTransaction(createTokenTx);
+  const createToken = useCallback(
+    async (values: NewTokenType): Promise<TokenId | null> => {
+      const createTokenTx = await HTS.createToken(values);
+      const createTokenResponse = await sendTransaction(createTokenTx);
 
-    if (!createTokenResponse) {
-      throw new Error('Create Token Error.');
-    }
+      if (!createTokenResponse) {
+        throw new Error('Create Token Error.');
+      }
 
-    return createTokenResponse.tokenId;
-  }, [sendTransaction]);
+      return createTokenResponse.tokenId;
+    },
+    [sendTransaction]
+  );
 
-  const mint = useCallback(async (tokenId: string, cids: string[]) => {
-    const tokenMintTx = HTS.mintToken(tokenId, cids);
+  const mint = useCallback(
+    async (tokenId: string, cids: string[]) => {
+      const tokenMintTx = HTS.mintToken(tokenId, cids);
 
-    const tokenMintResponse = await sendTransaction(tokenMintTx);
+      const tokenMintResponse = await sendTransaction(tokenMintTx);
 
-    if (!tokenMintResponse) {
-      throw new Error('Token mint failed.');
-    }
+      if (!tokenMintResponse) {
+        throw new Error('Token mint failed.');
+      }
 
-    return tokenMintResponse;
-  }, [sendTransaction]);
+      return tokenMintResponse;
+    },
+    [sendTransaction]
+  );
 
   const renderMintingError = useCallback((e) => {
     if (typeof e === 'string') {
       toast.error(e);
     } else if (e instanceof Error) {
       if (e.message.includes('illegal buffer')) {
-        toast.error('Transaction aborted in wallet.')
+        toast.error('Transaction aborted in wallet.');
       }
       if (e.message.includes('INSUFFICIENT_PAYER_BALANCE')) {
-        toast.error('No available balance to finish operation.')
-      }
-      else {
-        toast.error(e.message)
+        toast.error('No available balance to finish operation.');
+      } else {
+        toast.error(e.message);
       }
     }
-  }, [])
+  }, []);
 
-  const handleFormSubmit = useCallback(async (values) => {
-    const formValues : FormikValues = {...values}
-    const tokenSymbol = formValues.symbol;
+  const handleFormSubmit = useCallback(
+    async (values) => {
+      const formValues: FormikValues = { ...values };
+      const tokenSymbol = formValues.symbol;
 
-    delete formValues.symbol;
-    let formTokenId = formValues?.token_id
-    let metaCIDs : UploadResponse[] = []
+      delete formValues.symbol;
+      let formTokenId = formValues?.token_id;
+      let metaCIDs: UploadResponse[] = [];
 
-    try {
-      if (!userWalletId) {
-        throw new Error('First connect your wallet!');
-      }
-
-      if (
-        formValues.mint_type === MintTypes.NewCollectionNewNFT
-        || formValues.mint_type === MintTypes.ExistingCollectionNewNFT
-      ) {
-        const filteredValues = filterFormValuesToNFTMetadata(formValues);
-
-        //upload image
-        if (formValues.image) {
-          const imageData = await uploadNFTFile(formValues.image);
-
-          if (!imageData.ok) {
-            throw new Error('Error when uploading NFT File!');
-          }
-          filteredValues.type = formValues.image.type;
-          filteredValues.image = `ipfs://${ imageData.value.cid }`;
+      try {
+        if (!userWalletId) {
+          throw new Error('First connect your wallet!');
         }
 
-        // upload metadata
-        const uploadedMetadata = await uploadMetadata(filteredValues)
+        if (
+          formValues.mint_type === MintTypes.NewCollectionNewNFT ||
+          formValues.mint_type === MintTypes.ExistingCollectionNewNFT
+        ) {
+          const filteredValues = filterFormValuesToNFTMetadata(formValues);
 
-        // copy uploaded metadata CID to have same length as minting NFT qty
-        metaCIDs = Array.from(new Array(parseInt(formValues.qty))).map(() =>
-          uploadedMetadata
-        )
-      } else {
-        // if semi-NFT, use metadata from formik formValues
-        metaCIDs = await Promise.all(
-          Array.from(new Array(parseInt(formValues.qty))).map(() =>
-            IPFS.createMetadataFile(formValues.serial_metadata)
-              .then(res => res.data)
-          )
+          //upload image
+          if (formValues.image) {
+            const imageData = await uploadNFTFile(formValues.image);
+
+            if (!imageData.ok) {
+              throw new Error('Error when uploading NFT File!');
+            }
+            filteredValues.type = formValues.image.type;
+            filteredValues.image = `ipfs://${imageData.value.cid}`;
+          }
+
+          // upload metadata
+          const uploadedMetadata = await uploadMetadata(filteredValues);
+
+          // copy uploaded metadata CID to have same length as minting NFT qty
+          metaCIDs = Array.from(new Array(parseInt(formValues.qty))).map(
+            () => uploadedMetadata
+          );
+        } else {
+          // if semi-NFT, use metadata from formik formValues
+          metaCIDs = await Promise.all(
+            Array.from(new Array(parseInt(formValues.qty))).map(() =>
+              IPFS.createMetadataFile(formValues.serial_metadata).then(
+                (res) => res.data
+              )
+            )
+          );
+        }
+
+        if (!formTokenId) {
+          formTokenId = await createToken({
+            tokenSymbol,
+            accountId: userWalletId,
+            tokenName: formValues.name,
+            amount: formValues.qty,
+            keys: [...formValues.keys, ...formValues.treasuryAccountId],
+            customFees: formValues.fees,
+            maxSupply: formValues.maxSupply,
+          } as NewTokenType);
+        }
+
+        if (!formTokenId) {
+          throw new Error('Error! Problem with creating token!');
+        }
+
+        //check if is string
+        const tokenIdToMint = formTokenId.toString();
+
+        // mint
+        await mint(
+          tokenIdToMint,
+          metaCIDs.map(({ value }) => value.cid)
         );
+
+        setNewNFTdata({ ...formValues, tokenId: tokenIdToMint });
+      } catch (e) {
+        renderMintingError(e);
       }
-
-      if (!formTokenId) {
-        formTokenId = await createToken({
-          tokenSymbol,
-          accountId: userWalletId,
-          tokenName: formValues.name,
-          amount: formValues.qty,
-          keys: [...formValues.keys, ...formValues.treasuryAccountId],
-          customFees: formValues.fees,
-          maxSupply: formValues.maxSupply
-        } as NewTokenType);
-      }
-
-      if (!formTokenId) {
-        throw new Error('Error! Problem with creating token!');
-      }
-
-      //check if is string
-      const tokenIdToMint = formTokenId.toString();
-
-      // mint
-      await mint(
-        tokenIdToMint,
-        metaCIDs.map(({ value }) => value.cid)
-      );
-
-      setNewNFTdata({...formValues, tokenId: tokenIdToMint})
-    } catch (e) {
-      renderMintingError(e)
-    }
-  }, [
-    createToken,
-    mint,
-    renderMintingError,
-    setNewNFTdata,
-    uploadMetadata,
-    uploadNFTFile,
-    userWalletId
-  ]);
+    },
+    [
+      createToken,
+      mint,
+      renderMintingError,
+      setNewNFTdata,
+      uploadMetadata,
+      uploadNFTFile,
+      userWalletId,
+    ]
+  );
 
   useEffect(() => {
-    resetHomepageData()
-  }, [resetHomepageData])
+    resetHomepageData();
+  }, [resetHomepageData]);
 
   return (
-    <div className='mc--h container--padding container--max-height bg--transparent'>
+    <div className="mc--h container--padding container--max-height bg--transparent">
       <SwitchTransition>
         <CSSTransition
           key={tokenCreated ? 'created' : 'creating'}
-          addEndListener={(node, done) => node.addEventListener('transitionend', done, false)}
-          classNames='fade'
+          addEndListener={(node, done) =>
+            node.addEventListener('transitionend', done, false)
+          }
+          classNames="fade"
         >
           {tokenCreated ? (
-              <Summary mintedNFTData={mintedNFTData} />
-            ) : (
-              <Formik
-                initialValues={initialValues}
-                onSubmit={handleFormSubmit}
-                component={MinterWizardForm}
-                validationSchema={ValidationSchema}
-              />
+            <Summary mintedNFTData={mintedNFTData} />
+          ) : (
+            <Formik
+              initialValues={initialValues}
+              onSubmit={handleFormSubmit}
+              component={MinterWizardForm}
+              validationSchema={ValidationSchema}
+            />
           )}
         </CSSTransition>
       </SwitchTransition>
     </div>
-  )
+  );
 }
